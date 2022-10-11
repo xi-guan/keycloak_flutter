@@ -94,8 +94,7 @@ abstract class KeycloakInitOptions {
   /// ```
   external dynamic /*'default'|'cordova'|'cordova-native'|KeycloakAdapter*/ get adapter;
 
-  external set adapter(
-      dynamic /*'default'|'cordova'|'cordova-native'|KeycloakAdapter*/ v);
+  external set adapter(dynamic /*'default'|'cordova'|'cordova-native'|KeycloakAdapter*/ v);
 
   /// Specifies an action to do on load.
   external String /*'login-required'|'check-sso'*/ get onLoad;
@@ -330,16 +329,14 @@ typedef void KeycloakPromiseCallback<T>(T result);
 
 @anonymous
 @JS()
-abstract class KeycloakPromise<TSuccess, TError> implements Future<TSuccess> {
+abstract class KeycloakPromise<TSuccess, TError> {
   /// Function to call if the promised action succeeds.
   /// Use `.then()` instead.
-  external KeycloakPromise<TSuccess, TError> success(
-      KeycloakPromiseCallback<TSuccess> callback);
+  external KeycloakPromise<TSuccess, TError> success(KeycloakPromiseCallback<TSuccess> callback);
 
   /// Function to call if the promised action throws an error.
   /// Use `.catch()` instead.
-  external KeycloakPromise<TSuccess, TError> error(
-      KeycloakPromiseCallback<TError> callback);
+  external KeycloakPromise<TSuccess, TError> error(KeycloakPromiseCallback<TError> callback);
 }
 
 @anonymous
@@ -359,13 +356,11 @@ abstract class KeycloakAdapter {
 
   external KeycloakPromise<void, void> logout([KeycloakLogoutOptions options]);
 
-  external KeycloakPromise<void, void> register(
-      [KeycloakRegisterOptions options]);
+  external KeycloakPromise<void, void> register([KeycloakRegisterOptions options]);
 
   external KeycloakPromise<void, void> accountManagement();
 
-  external String redirectUri(
-      dynamic /*{ redirectUri: string; }*/ options, bool encodeHash);
+  external String redirectUri(dynamic /*{ redirectUri: string; }*/ options, bool encodeHash);
 }
 
 @anonymous
@@ -508,8 +503,7 @@ abstract class Keycloak {
   /// based on the flow value used during initialization, but can be overridden
   /// by setting this value.
   external String /*'code'|'id_token token'|'code id_token token'*/ get responseType;
-  external set responseType(
-      String /*'code'|'id_token token'|'code id_token token'*/ v);
+  external set responseType(String /*'code'|'id_token token'|'code id_token token'*/ v);
 
   /// Flow passed in init.
   external String /*'standard'|'implicit'|'hybrid'*/ get flow;
@@ -619,8 +613,7 @@ abstract class Keycloak {
   external void onActionUpdate(String /*'success'|'cancelled'|'error'*/ status);
 
   /// Called to initialize the adapter.
-  external KeycloakPromise<bool, KeycloakError> init(
-      KeycloakInitOptions? initOptions);
+  external KeycloakPromise<bool, KeycloakError> init(KeycloakInitOptions? initOptions);
 
   /// Redirects to login form.
   external KeycloakPromise<void, void> login([KeycloakLoginOptions? options]);
@@ -629,8 +622,7 @@ abstract class Keycloak {
   external KeycloakPromise<void, void> logout([KeycloakLogoutOptions? options]);
 
   /// Redirects to registration form.
-  external KeycloakPromise<void, void> register(
-      [KeycloakRegisterOptions options]);
+  external KeycloakPromise<void, void> register([KeycloakRegisterOptions options]);
 
   /// Redirects to the Account Management Console.
   external KeycloakPromise<void, void> accountManagement();

@@ -9,24 +9,18 @@ import 'package:keycloak_flutter/src/keycloak.dart';
 /// Nov, 2020
 
 class KeycloakService {
-  late Keycloak _keycloak;
+  final Keycloak _keycloak;
   KeycloakProfile? _userProfile;
-  StreamController<KeycloakEvent> _keycloakEvents =
-      StreamController.broadcast();
-  late bool _loadUserProfileAtStartUp;
+  StreamController<KeycloakEvent> _keycloakEvents = StreamController.broadcast();
+  bool _loadUserProfileAtStartUp = false;
   bool _silentRefresh = false;
 
-  KeycloakService(KeycloakConfig config) {
-    _keycloak = Keycloak(config);
-  }
+  KeycloakService(KeycloakConfig config) : _keycloak = Keycloak(config);
 
-  Future<bool> init(
-      {KeycloakInitOptions? initOptions,
-      bool loadUserProfileAtStartUp = false}) async {
+  Future<bool> init({KeycloakInitOptions? initOptions, bool loadUserProfileAtStartUp = false}) async {
     _loadUserProfileAtStartUp = loadUserProfileAtStartUp;
     _bindEvents();
-    bool authed = false;
-    authed = await promiseToFuture<bool>(_keycloak.init(initOptions));
+    bool authed = await promiseToFuture<bool>(_keycloak.init(initOptions));
     if (authed && this._loadUserProfileAtStartUp) {
       await this.loadUserProfile();
     }
@@ -38,39 +32,32 @@ class KeycloakService {
       _keycloakEvents.add(KeycloakEvent(type: KeycloakEventType.onAuthSuccess));
     });
     _keycloak.onAuthError = allowInterop((error) {
-      _keycloakEvents
-          .add(KeycloakEvent(type: KeycloakEventType.onAuthError, args: error));
+      _keycloakEvents.add(KeycloakEvent(type: KeycloakEventType.onAuthError, args: error));
     });
     _keycloak.onReady = allowInterop((authenticated) {
-      _keycloakEvents.add(
-          KeycloakEvent(type: KeycloakEventType.onReady, args: authenticated));
+      _keycloakEvents.add(KeycloakEvent(type: KeycloakEventType.onReady, args: authenticated));
     });
     _keycloak.onAuthRefreshError = allowInterop(() {
-      _keycloakEvents
-          .add(KeycloakEvent(type: KeycloakEventType.onAuthRefreshError));
+      _keycloakEvents.add(KeycloakEvent(type: KeycloakEventType.onAuthRefreshError));
     });
     _keycloak.onAuthLogout = allowInterop(() {
       _keycloakEvents.add(KeycloakEvent(type: KeycloakEventType.onAuthLogout));
     });
     _keycloak.onTokenExpired = allowInterop(() {
-      _keycloakEvents
-          .add(KeycloakEvent(type: KeycloakEventType.onTokenExpired));
+      _keycloakEvents.add(KeycloakEvent(type: KeycloakEventType.onTokenExpired));
     });
   }
 
   Stream<KeycloakEvent> get keycloakEventsStream => _keycloakEvents.stream;
 
   Future<void> login([KeycloakLoginOptions? options]) async {
-    await this._keycloak.login(options);
-
+    await promiseToFuture<void>(this._keycloak.login(options));
     if (this._loadUserProfileAtStartUp) {
       await this.loadUserProfile();
     }
   }
 
-  get authenticated {
-    return _keycloak.authenticated;
-  }
+  get authenticated => _keycloak.authenticated;
 
   Future<String> getToken([bool forceLogin = false]) async {
     await this.updateToken(10);
@@ -78,7 +65,7 @@ class KeycloakService {
   }
 
   Future<void> logout([KeycloakLogoutOptions? options]) async {
-    await this._keycloak.logout(options);
+    await promiseToFuture<void>(this._keycloak.logout(options));
     this._userProfile = null;
   }
 
@@ -88,11 +75,10 @@ class KeycloakService {
     }
 
     if (!this._keycloak.authenticated) {
-      throw new Exception(
-          'The user profile was not loaded as the user is not logged in.');
+      throw new Exception('The user profile was not loaded as the user is not logged in.');
     }
-    return this._userProfile =
-        await promiseToFuture(this._keycloak.loadUserProfile());
+
+    return this._userProfile = await promiseToFuture<KeycloakProfile?>(this._keycloak.loadUserProfile());
   }
 
   /// Check if user is logged in.
@@ -111,30 +97,22 @@ class KeycloakService {
     }
   }
 
-  /// If the token expires within minValidity seconds the token is refreshed. If the
-  /// session status iframe is enabled, the session status is also checked.
-  /// Returns a promise telling if the token was refreshed or not. If the session is not active
-  /// anymore, the promise is rejected.
+  /// - If the token expires within minValidity seconds the token is refreshed.
+  /// - If the session status iframe is enabled, the session status is also checked.
+  /// - Returns a promise telling if the token was refreshed or not. If the session is not active anymore, the promise
+  /// is rejected.
   ///
-  /// @param [minValidity]
-  /// Seconds left. ([minValidity] is optional, if not specified 5 is used)
+  /// @param [minValidity] - Seconds left. ([minValidity] is optional, if not specified 5 is used)
+  ///
   /// @returns
   /// Promise with a boolean indicating if the token was succesfully updated.
   Future<bool> updateToken([num minValidity = 5]) async {
-    // TODO: this is a workaround until the silent refresh (issue #43)
-    // is not implemented, avoiding the redirect loop.
+    // TODO: this is a workaround until the silent refresh (issue #43) is not implemented, avoiding the redirect loop.
     if (this._silentRefresh) {
-      var tokenExpired = this.isTokenExpired();
-      if (tokenExpired) {
-        throw new Exception(
-            'Failed to refresh the token, or the session is expired');
+      if (this.isTokenExpired()) {
+        throw new Exception('Failed to refresh the token, or the session is expired');
       }
-
       return true;
-    }
-
-    if (this._keycloak == null) {
-      throw new Exception('Keycloak Dart library is not initialized.');
     }
     return promiseToFuture<bool>(this._keycloak.updateToken(minValidity));
   }
@@ -152,7 +130,6 @@ class KeycloakService {
     return this._keycloak.isTokenExpired(minValidity);
   }
 
-  @override
   void dispose() {
     _keycloakEvents.close();
   }
@@ -187,14 +164,14 @@ enum KeycloakEventType {
 class KeycloakEvent {
   /// Represents various type keycloak events that can be subscribed to
   ///
-  /// [KeycloakEventType.onAuthError] is called if there was an error during authentication.
-  /// [KeycloakEventType.onAuthLogout] Called if the user is logged out (will only be called if the session status
+  /// - [KeycloakEventType.onAuthError] - is called if there was an error during authentication.
+  /// - [KeycloakEventType.onAuthLogout] - is called if the user is logged out (will only be called if the session status
   /// iframe is enabled, or in Cordova mode).
-  /// [KeycloakEventType.onAuthRefreshError] Called if there was an error while trying to refresh the token.
-  /// [KeycloakEventType.onAuthRefreshSuccess] Called when the token is refreshed
-  /// [KeycloakEventType.onAuthSuccess] Called when a user is successfully authenticated.
-  /// [KeycloakEventType.onReady] Called when the adapter is initialized.
-  ///  [KeycloakEventType.onTokenExpired] Called when the access token is expired. If a refresh token is available
+  /// - [KeycloakEventType.onAuthRefreshError] - is called if there was an error while trying to refresh the token.
+  /// - [KeycloakEventType.onAuthRefreshSuccess] - is called when the token is refreshed
+  /// - [KeycloakEventType.onAuthSuccess] - is called when a user is successfully authenticated.
+  /// - [KeycloakEventType.onReady] - is called when the adapter is initialized.
+  /// - [KeycloakEventType.onTokenExpired] - is called when the access token is expired. If a refresh token is available
   ///  the token can be refreshed with updateToken, or in cases where it is not
   ///  (that is, with implicit flow) you can redirect to login screen to obtain a new access token.
   final KeycloakEventType? type;
@@ -202,4 +179,9 @@ class KeycloakEvent {
   final dynamic args;
 
   KeycloakEvent({this.type, this.args});
+
+  @override
+  String toString() {
+    return 'KeycloakEvent: {type: $type, args: $args}';
+  }
 }
