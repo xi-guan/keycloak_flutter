@@ -394,6 +394,7 @@ abstract class KeycloakProfile {
       bool emailVerified,
       bool totp,
       num createdTimestamp});
+  KeycloakRoles? roles;
 }
 
 @anonymous

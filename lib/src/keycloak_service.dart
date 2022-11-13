@@ -78,7 +78,9 @@ class KeycloakService {
       throw new Exception('The user profile was not loaded as the user is not logged in.');
     }
 
-    return this._userProfile = await promiseToFuture<KeycloakProfile?>(this._keycloak.loadUserProfile());
+    var profile = await promiseToFuture<KeycloakProfile?>(this._keycloak.loadUserProfile());
+    profile?.roles = this._keycloak.realmAccess;
+    return this._userProfile = profile;
   }
 
   /// Check if user is logged in.
